@@ -145,8 +145,12 @@ if __name__ == "__main__":
     # Test the portfolio manager
     pm = PortfolioManager()
     portfolio_data = pm.to_dict()
-    
-    print("Portfolio Summary:")
+
+    # 1️⃣  Emit machine-readable JSON for the API route
+    print(json.dumps(portfolio_data))
+
+    # 2️⃣  Human-readable summary follows
+    print("\nPortfolio Summary:")
     print(f"Total Value: ${portfolio_data['total_value']:,.2f}")
     print(f"Number of Assets: {len(portfolio_data['assets'])}")
     print(f"Asset Allocation: {portfolio_data['asset_allocation']}")

@@ -12,7 +12,7 @@ export async function GET() {
     return NextResponse.json(portfolioData)
   } catch (error) {
     console.error("Error running Python portfolio script:", error)
-    return NextResponse.json({ error: "Failed to get portfolio data" }, { status: 500 })
+    return NextResponse.json({ error: "Internal server error while loading portfolio data." }, { status: 500 })
   }
 }
 

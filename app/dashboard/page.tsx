@@ -41,6 +41,9 @@ export default function Dashboard() {
     const loadPortfolioData = async () => {
       try {
         const response = await fetch("/api/python-portfolio")
+        if (!response.ok) {
+          throw new Error(`Portfolio API returned ${response.status}: ${await response.text()}`)
+        }
         const data = await response.json()
         setPortfolioData(data)
 
@@ -65,15 +68,10 @@ export default function Dashboard() {
 Your portfolio shows good diversification with a balanced risk profile. How can I help optimize your investments today?`,
           },
         ])
-      } catch (error) {
-        console.error("Error loading portfolio data:", error)
-        setChatMessages([
-          {
-            role: "assistant",
-            content:
-              "I'm having trouble loading your portfolio data. Please make sure the Python backend is running and your .env file contains the GROQ_API_KEY.",
-          },
-        ])
+      } catch (err) {
+        console.error("Error loading portfolio data:", err)
+        setPortfolioData(null)
+        setChatMessages([{ role: "assistant", content: "❌ Unable to load portfolio data. Please try again later." }])
       }
     }
 
