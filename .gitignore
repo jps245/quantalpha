@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+*.log
+*.sqlite3
+
+# Poetry
+poetry.lock
+
+# VS Code
+.vscode/
+
+# Node
+node_modules/
+dist/
+.next/
+.nyc_output/
+coverage/
+build/
+npm-debug.log*
+
+# OS
+.DS_Store
