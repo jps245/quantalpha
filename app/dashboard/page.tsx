@@ -30,7 +30,7 @@ export default function Dashboard() {
     {
       role: "assistant",
       content:
-        "Hello! I'm your Python-powered AI Portfolio Manager using Groq's Llama model. Let me analyze your portfolio data...",
+        "Hello! I'm your Python-powered AI Portfolio Manager using Groq's Llama model. Let me load your portfolio data...",
     },
   ])
   const [message, setMessage] = useState("")
@@ -43,8 +43,37 @@ export default function Dashboard() {
         const response = await fetch("/api/python-portfolio")
         const data = await response.json()
         setPortfolioData(data)
+
+        // Update initial message with portfolio context
+        setChatMessages([
+          {
+            role: "assistant",
+            content: `Hello! I'm your AI Portfolio Manager powered by Python analytics and Groq's Llama model. 
+
+📊 **Your Portfolio Analysis:**
+• Total Value: $${data.total_value?.toLocaleString()}
+• Sharpe Ratio: ${data.metrics?.sharpe_ratio?.toFixed(2)}
+• Portfolio Return: ${data.metrics?.portfolio_return?.toFixed(2)}%
+• Volatility: ${data.metrics?.portfolio_volatility?.toFixed(1)}%
+
+**Asset Allocation:**
+• Stocks: ${data.asset_allocation?.stock}%
+• Bonds: ${data.asset_allocation?.bond}%
+• Crypto: ${data.asset_allocation?.crypto}%
+• Cash: ${data.asset_allocation?.cash}%
+
+Your portfolio shows good diversification with a balanced risk profile. How can I help optimize your investments today?`,
+          },
+        ])
       } catch (error) {
         console.error("Error loading portfolio data:", error)
+        setChatMessages([
+          {
+            role: "assistant",
+            content:
+              "I'm having trouble loading your portfolio data. Please make sure the Python backend is running and your .env file contains the GROQ_API_KEY.",
+          },
+        ])
       }
     }
 
@@ -65,17 +94,25 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: message,
-          conversation_history: chatMessages,
+          conversation_history: chatMessages.slice(-10), // Keep last 10 messages for context
         }),
       })
 
       const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to get AI response")
+      }
+
       setChatMessages((prev) => [...prev, { role: "assistant", content: data.response }])
     } catch (error) {
       console.error("Error sending message:", error)
       setChatMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "Sorry, I encountered an error. Please try again." },
+        {
+          role: "assistant",
+          content: `Sorry, I encountered an error: ${error instanceof Error ? error.message : "Unknown error"}. Please check your .env file and make sure GROQ_API_KEY is set.`,
+        },
       ])
     } finally {
       setIsLoading(false)
@@ -88,6 +125,7 @@ export default function Dashboard() {
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
           <p>Loading Python portfolio data...</p>
+          <p className="text-sm text-muted-foreground mt-2">Make sure your .env file contains GROQ_API_KEY</p>
         </div>
       </div>
     )
@@ -149,7 +187,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{portfolioData.metrics?.sharpe_ratio?.toFixed(2)}</div>
-                <Progress value={Math.min(portfolioData.metrics?.sharpe_ratio * 50, 100)} className="mt-2" />
+                <Progress value={Math.min(Math.abs(portfolioData.metrics?.sharpe_ratio) * 50, 100)} className="mt-2" />
               </CardContent>
             </Card>
             <Card>
@@ -316,7 +354,7 @@ export default function Dashboard() {
               <Brain className="w-5 h-5 mr-2 text-blue-500" />
               Python AI Manager
             </h2>
-            <p className="text-xs text-muted-foreground mt-1">Powered by Python + Groq Llama</p>
+            <p className="text-xs text-muted-foreground mt-1">Python Analytics + Groq Llama</p>
           </div>
           <ScrollArea className="h-[calc(100vh-200px)] p-4">
             <div className="space-y-4">
@@ -327,7 +365,7 @@ export default function Dashboard() {
                       msg.role === "user" ? "bg-blue-500 text-white" : "bg-slate-100 text-slate-900"
                     }`}
                   >
-                    {msg.content}
+                    <div className="whitespace-pre-wrap">{msg.content}</div>
                   </div>
                 </div>
               ))}
@@ -347,7 +385,7 @@ export default function Dashboard() {
                 placeholder="Ask your Python AI advisor..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
                 disabled={isLoading}
               />
               <Button onClick={handleSendMessage} size="icon" disabled={isLoading}>

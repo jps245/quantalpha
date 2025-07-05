@@ -19,32 +19,51 @@ export async function POST(req: NextRequest) {
     const tempFile = path.join(process.cwd(), "temp_chat.json")
     fs.writeFileSync(tempFile, JSON.stringify(tempData))
 
-    // Run Python AI advisor with the message
+    // Run Python AI advisor with the message using the official Groq client
     const command = `python -c "
 import sys
 import json
+import os
 from scripts.ai_portfolio_advisor import AIPortfolioAdvisor
 
-# Read temp data
-with open('temp_chat.json', 'r') as f:
-    data = json.load(f)
+try:
+    # Read temp data
+    with open('temp_chat.json', 'r') as f:
+        data = json.load(f)
 
-advisor = AIPortfolioAdvisor()
-response = advisor.chat_with_advisor(data['message'], data['conversation_history'])
-print(json.dumps({'response': response}))
+    advisor = AIPortfolioAdvisor()
+    response = advisor.chat_with_advisor(data['message'], data['conversation_history'])
+    print(json.dumps({'response': response, 'success': True}))
+    
+except Exception as e:
+    print(json.dumps({'error': str(e), 'success': False}))
 "`
 
-    const { stdout } = await execAsync(command)
+    const { stdout, stderr } = await execAsync(command)
 
     // Clean up temp file
     if (fs.existsSync(tempFile)) {
       fs.unlinkSync(tempFile)
     }
 
+    if (stderr) {
+      console.error("Python stderr:", stderr)
+    }
+
     const result = JSON.parse(stdout.trim())
-    return NextResponse.json(result)
+
+    if (!result.success) {
+      return NextResponse.json({ error: result.error }, { status: 500 })
+    }
+
+    return NextResponse.json({ response: result.response })
   } catch (error) {
     console.error("Error running Python AI chat:", error)
-    return NextResponse.json({ error: "Failed to get AI response" }, { status: 500 })
+    return NextResponse.json(
+      {
+        error: "Failed to get AI response. Make sure your .env file contains GROQ_API_KEY and run: pip install groq",
+      },
+      { status: 500 },
+    )
   }
 }
